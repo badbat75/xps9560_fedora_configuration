@@ -1,0 +1,63 @@
+#!/bin/bash
+
+FONT=dejavu-sans-mono-fonts/DejaVuSansMono.ttf
+FONTNAME=$(basename ${FONT%.*})
+FONTSIZE=34
+LOGODARKEN=90
+
+function grub_config () {
+	set -e
+
+	mkdir -p /boot/grub2/{fonts,backgrounds}
+	sed -i 's/^GRUB_TERMINAL_OUTPUT="console"/#GRUB_TERMINAL_OUTPUT="console"/' /etc/default/grub
+	if [ ! $(grep GRUB_FONT /etc/default/grub | wc -l) -eq 1 ]; then
+		echo -n "Adding GRUB_FONT..."
+		grub2-mkfont -s ${FONTSIZE} -o /boot/grub2/${FONTNAME}.pf2 /usr/share/fonts/${FONT}
+		echo "GRUB_FONT=/boot/grub2/fonts/${FONTNAME}.pf2" >> /etc/default/grub
+		echo "done."
+	fi
+	if [ ! $(grep GRUB_BACKGROUND /etc/default/grub | wc -l) -eq 1 ]; then
+		echo -n "Adding GRUB_BACKGROUND..."
+		if [ ! $(rpm -q grub2-efi-x64-modules | grep -v "not installed" | wc -l) -eq 1 ]; then
+			echo -n "Installing grub2-efi-x64-modules..."
+			dnf -qy install grub2-efi-x64-modules
+		fi
+		if [ ! $(grep "insmod gfxterm_background" /etc/grub.d/00_header | wc -l) -eq 1 ]; then
+			echo -n "Adding gfxterm_background modules..."
+			sed -i '/^  insmod gfxterm/a \ \ insmod gfxterm_background' /etc/grub.d/00_header
+		fi
+		convert -background black -extent 3840x2160-1503-393 /sys/firmware/acpi/bgrt/image /boot/grub2/backgrounds/fwlogo.png
+		convert -background black -extent 3840x2160-1503-393 /sys/firmware/acpi/bgrt/image -colorize ${LOGODARKEN} /boot/grub2/backgrounds/fwlogo_dark.png
+		echo "GRUB_BACKGROUND=/boot/grub2/backgrounds/fwlogo_dark.png" >> /etc/default/grub
+		echo "done."
+	fi
+	grub2-mkconfig -o /boot/efi/EFI/fedora/grub.cfg
+
+	set +e
+}
+function set_hwclock () {
+	set -e
+	echo -n "Setting hwclock..."
+	hwclock -w
+	echo "done."
+	set +e
+}
+
+function install_nvidia () {
+	if [ ! $(rpm -q akmod-nvidia | grep -v "not installed" | wc -l) -eq 1 ]; then
+		echo -n "Installing NVIDIA drivers..."
+		dnf config-manager --enable rpmfusion-nonfree-nvidia-driver
+		dnf -qy install akmod-nvidia xorg-x11-drv-nvidia xorg-x11-drv-nvidia-cuda
+		echo "done."
+	fi
+}
+
+if [ ! $(whoami) == root ]; then
+	sudo ${0}
+else
+	set -e
+	grub_config
+	set_hwclock
+	install_nvidia
+	set +e
+fi
