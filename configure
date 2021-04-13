@@ -4,6 +4,7 @@ FONT=dejavu-sans-mono-fonts/DejaVuSansMono.ttf
 FONTNAME=$(basename ${FONT%.*})
 FONTSIZE=34
 LOGODARKEN=90
+SETLOCALRTC=1
 
 function grub_config () {
 	set -e
@@ -37,10 +38,12 @@ function grub_config () {
 }
 function set_hwclock () {
 	set -e
-	echo -n "Setting hwclock..."
-	timedatectl set-local-rtc true
-	timedatectl --adjust-system-clock
-	echo "done."
+	if [ ${SETLOCALRTC} -eq 1 ]; then
+		echo -n "Setting hwclock..."
+		timedatectl set-local-rtc true
+		timedatectl --adjust-system-clock
+		echo "done."
+	fi
 	set +e
 }
 
