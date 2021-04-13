@@ -39,6 +39,7 @@ function set_hwclock () {
 	set -e
 	echo -n "Setting hwclock..."
 	timedatectl set-local-rtc true
+	timedatectl --adjust-system-clock
 	echo "done."
 	set +e
 }
