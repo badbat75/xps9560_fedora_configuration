@@ -38,7 +38,7 @@ function grub_config () {
 function set_hwclock () {
 	set -e
 	echo -n "Setting hwclock..."
-	hwclock -w
+	timedatectl set-local-rtc true
 	echo "done."
 	set +e
 }
