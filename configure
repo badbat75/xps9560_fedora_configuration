@@ -56,12 +56,22 @@ function install_nvidia () {
 	fi
 }
 
+function dell_hwmon () {
+	if [ ! $(rpm -q i8kutils | grep -v "not installed" | wc l) -eq 1 ]; then
+		echo -n "Install Dell HW Monitor"
+		dnf copr enable hernane/i8kutils
+		dnf -qy install dell-bios-fan-control i8kutils
+		echo "done"."
+	fi
+}
+
 if [ ! $(whoami) == root ]; then
 	sudo ${0}
 else
 	set -e
 	grub_config
 	set_hwclock
+	dell_hwmon
 	install_nvidia
 	set +e
 fi
