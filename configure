@@ -61,6 +61,21 @@ function dell_hwmon () {
 		echo -n "Install Dell HW Monitor"
 		dnf copr enable hernane/i8kutils
 		dnf -qy install dell-bios-fan-control i8kutils acpi
+		cat > /etc/systemd/system/i8kmon-after-resume.service <<-EOF
+			[Unit]
+			Description=Restart fan monitor after resume to keep laptop from melting.
+			After=suspend.target hibernate.target hybrid-sleep.target
+
+			[Service]
+			Type=simple
+			ExecStart=/bin/systemctl restart i8kmon.service
+
+			[Install]
+			WantedBy=suspend.target
+		EOF
+		systemctl daemon-reload
+		systemctl enable --now i8kmon
+		systemctl enable --now i8kmon-after-resume
 		echo "done"."
 	fi
 }
