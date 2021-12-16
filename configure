@@ -8,12 +8,11 @@ SETLOCALRTC=1
 
 function grub_config () {
 	set -e
-
 	mkdir -p /boot/grub2/{fonts,backgrounds}
 	sed -i 's/^GRUB_TERMINAL_OUTPUT="console"/#GRUB_TERMINAL_OUTPUT="console"/' /etc/default/grub
 	if [ ! $(grep GRUB_FONT /etc/default/grub | wc -l) -eq 1 ]; then
 		echo -n "Adding GRUB_FONT..."
-		grub2-mkfont -s ${FONTSIZE} -o /boot/grub2/${FONTNAME}.pf2 /usr/share/fonts/${FONT}
+		grub2-mkfont -s ${FONTSIZE} -o /boot/grub2/fonts/${FONTNAME}.pf2 /usr/share/fonts/${FONT}
 		echo "GRUB_FONT=/boot/grub2/fonts/${FONTNAME}.pf2" >> /etc/default/grub
 		echo "done."
 	fi
@@ -23,10 +22,16 @@ function grub_config () {
 			echo -n "Installing grub2-efi-x64-modules..."
 			dnf -qy install grub2-efi-x64-modules
 		fi
+		if [ ! -f /boot/efi/EFI/fedora/x86_64-efi/gfxterm_background.mod ]
+		then
+			mkdir -p /boot/efi/EFI/fedora/x86_64-efi/
+			cp /usr/lib/grub/x86_64-efi/gfxterm_background.mod /boot/efi/EFI/fedora/x86_64-efi/
+		fi
 		if [ ! $(grep "insmod gfxterm_background" /etc/grub.d/00_header | wc -l) -eq 1 ]; then
 			echo -n "Adding gfxterm_background modules..."
 			sed -i '/^  insmod gfxterm/a \ \ insmod gfxterm_background' /etc/grub.d/00_header
 		fi
+		sudo dnf -y install ImageMagick
 		convert -background black -extent 3840x2160-1503-393 /sys/firmware/acpi/bgrt/image /boot/grub2/backgrounds/fwlogo.png
 		convert -background black -extent 3840x2160-1503-393 /sys/firmware/acpi/bgrt/image -colorize ${LOGODARKEN} /boot/grub2/backgrounds/fwlogo_dark.png
 		echo "GRUB_BACKGROUND=/boot/grub2/backgrounds/fwlogo_dark.png" >> /etc/default/grub
@@ -57,7 +62,7 @@ function install_nvidia () {
 }
 
 function dell_hwmon () {
-	if [ ! $(rpm -q i8kutils | grep -v "not installed" | wc l) -eq 1 ]; then
+	if [ ! $(rpm -q i8kutils | grep -v "not installed" | wc -l) -eq 1 ]; then
 		echo -n "Install Dell HW Monitor"
 		dnf copr enable hernane/i8kutils
 		dnf -qy install dell-bios-fan-control i8kutils acpi
@@ -76,7 +81,7 @@ function dell_hwmon () {
 		systemctl daemon-reload
 		systemctl enable --now i8kmon
 		systemctl enable --now i8kmon-after-resume
-		echo "done"."
+		echo "done."
 	fi
 }
 
