@@ -4,7 +4,7 @@ FONT=dejavu-sans-mono-fonts/DejaVuSansMono.ttf
 FONTNAME=$(basename ${FONT%.*})
 FONTSIZE=34
 LOGODARKEN=90
-SETLOCALRTC=1
+SETLOCALRTC=0
 
 function grub_config () {
 	set -e
@@ -62,6 +62,7 @@ function install_nvidia () {
 }
 
 function dell_hwmon () {
+	set -e
 	if [ ! $(rpm -q i8kutils | grep -v "not installed" | wc -l) -eq 1 ]; then
 		echo -n "Install Dell HW Monitor"
 		dnf copr enable hernane/i8kutils
@@ -83,6 +84,7 @@ function dell_hwmon () {
 		systemctl enable --now i8kmon-after-resume
 		echo "done."
 	fi
+	set +e
 }
 
 if [ ! $(whoami) == root ]; then
@@ -91,7 +93,7 @@ else
 	set -e
 	grub_config
 	set_hwclock
-	dell_hwmon
+	#dell_hwmon
 	install_nvidia
 	set +e
 fi
